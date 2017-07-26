@@ -7,7 +7,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/login', function(req, res, next) {
-  res.send('login todo');
+  res.render('login', { title: '登录' });
 });
 
 router.get('/reg', function(req, res, next) {
