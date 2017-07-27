@@ -15,6 +15,7 @@ var app = express();
 var settings = require('./settings');
 var session = require('express-session');
 var MongoStore = require('connect-mongo')(session);
+var flash = require('connect-flash');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -38,7 +39,15 @@ app.use(session({
     host: settings.host,
   })
 }));
+app.use(flash());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(function(req,res,next){
+  res.locals.user=req.session.user;
+  res.locals.error=req.flash('error').toString();
+  res.locals.success=req.flash('success').toString();
+  next();
+});
 
 app.use('/', index);
 app.use('/users', users);
@@ -67,7 +76,7 @@ app.use(function(err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.render('error');
+  res.render('error', { title: 'Error' });
 });
 
 module.exports = app;
