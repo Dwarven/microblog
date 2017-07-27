@@ -1,6 +1,6 @@
-# node-practice
+# microblog
 
-express 4 microblog
+express 4
 
 ```
 sudo npm install -g express-generator
