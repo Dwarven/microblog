@@ -12,7 +12,10 @@ npm install connect-flash --save
 brew install mongodb
 mkdir -p data/db
 mongod --dbpath data/db
+
 DEBUG=microblog:* npm start
+//or
+NODE_ENV=production npm start
 ```
 
 # doc
