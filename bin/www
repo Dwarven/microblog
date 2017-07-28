@@ -1,93 +1,35 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
+var cluster = require('cluster');
+var os = require('os');
 
-var app = require('../app');
-var debug = require('debug')('microblog:server');
-var http = require('http');
+//获取CPU的数量
+var numCPUs = os.cpus().length;
 
-/**
- * Get port from environment and store in Express.
- */
-
-var port = normalizePort(process.env.PORT || '3000');
-app.set('port', port);
-
-/**
- * Create HTTP server.
- */
-
-var server = http.createServer(app);
-
-/**
- * Listen on provided port, on all network interfaces.
- */
-if (!module.parent) {
-  server.listen(port);
-}
-server.on('error', onError);
-server.on('listening', onListening);
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
+var workers = {};
+if (cluster.isMaster) {
+  //主进程分支
+  cluster.on('death', function(worker) {
+    //当一个工作进程结束时，重启工作进程
+    delete workers[worker.pid];
+    worker = cluster.fork();
+    workers[worker.pid] = worker;
+  });
+  //初始开启与CPU 数量相同的工作进程
+  for (var i = 0; i < numCPUs; i++) {
+    var worker = cluster.fork();
+    workers[worker.pid] = worker;
   }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
+} else {
+  //工作进程分支，启动服务器
+  var app = require('../server')
+  app.listen(3000);
 }
 
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
+//当主进程被终止时，关闭所有工作进程
+process.on('SIGTERM', function() {
+  for (var pid in workers) {
+    process.kill(pid);
   }
-
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
-}
-
-/**
- * Event listener for HTTP server "listening" event.
- */
-
-function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  debug('Listening on ' + bind);
-}
-
-module.exports = server;
+  process.exit(0);
+});
